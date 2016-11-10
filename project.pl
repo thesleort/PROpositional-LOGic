@@ -35,11 +35,13 @@ impl(X, Y)  :-  or(neg(X), Y).
 
 xor(X, Y)   :- 	or(X, Y), neg(and(X, Y)).
 
-equiv(X, Y) :-  or(and(X, Y),and(neg(X), neg(Y))).
+equiv(X, Y) :-  or(and(X, Y), and(neg(X), neg(Y))).
 
 /*
 * Well-formed formula
 */
+
+wff(X)			:-  X.
 
 wff(neg(X))		:-	wff(X).
 
@@ -81,10 +83,11 @@ satisfies(V, xor(X, Y))		:- xor(satisfies(V, X), satisfies(V, Y)).
 satisfies(V, equiv(X, Y))	:- equiv(satisfies(V, X), satisfies(V, Y)).
 
 
-list_members([X|_], X).
+list_members([X|_], p(X)).
 
-list_members([_|T], X) :-	list_members(T, X).
+list_members([_|T], p(X)) 		:- list_members(T, p(X)).
 
 /*
-* find_val/2
+* find_val_tt/2
 */
+find_val_tt(F, V).
