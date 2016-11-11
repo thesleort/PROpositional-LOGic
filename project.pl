@@ -23,7 +23,7 @@ If you use these things he'll chop your head off.
 * check for xor(*,*)
 */
 
-p(N)		:- N.
+p(N).
 
 neg(X)      :-  \+X.
 
@@ -85,9 +85,19 @@ satisfies(V, equiv(X, Y))	:- equiv(satisfies(V, X), satisfies(V, Y)).
 
 list_members([X|_], p(X)).
 
-list_members([_|T], p(X)) 		:- list_members(T, p(X)).
+list_members([_|T], p(X)) 	:- list_members(T, p(X)).
 
 /*
 * find_val_tt/2
 */
-find_val_tt(F, V).
+
+%find_val_tt(F, V)			:- 	append([], F, V).
+
+find_val_tt(p(F), V)		:- 	append(F,[],V).
+
+find_val_tt(and(X, Y), V)	:- 	append(find_val_tt(X, V), [], V),
+								append(find_val_tt(Y, V), [], V).
+
+
+add2end(X,[H|T],[H|NewT]):-add2end(X,T,NewT).
+add2end(X,[],[X]).
