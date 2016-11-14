@@ -23,7 +23,7 @@ If you use these things he'll chop your head off.
 * check for xor(*,*)
 */
 
-p(N)		:- N.
+p(K).
 
 neg(X)      :-  \+X.
 
@@ -67,8 +67,10 @@ wff(equiv(X, Y)):-	wff(X),
 *
 * satisfies([1],neg(1)).
 * satisfies([1],neg(2)).
+
+impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))
 */
-satisfies(V, F) 			:- list_members(V, F).
+satisfies(V, p(F)) 			:- list_members(V, F).
 
 satisfies(V, neg(X))		:- neg(satisfies(V, X)).
 
@@ -83,11 +85,56 @@ satisfies(V, xor(X, Y))		:- xor(satisfies(V, X), satisfies(V, Y)).
 satisfies(V, equiv(X, Y))	:- equiv(satisfies(V, X), satisfies(V, Y)).
 
 
-list_members([X|_], p(X)).
+list_members([X|_], X).
 
-list_members([_|T], p(X)) 		:- list_members(T, p(X)).
+list_members([_|T], X) 	:- list_members(T, X).
 
 /*
 * find_val_tt/2
 */
-find_val_tt(F, V).
+
+find_val_tt(F, V)		:-	find_val(F, A),
+							flatten(A, B),
+							sort(B, C),
+							sublist(C, V),
+							satisfies(V, F).
+
+find_val(p(F), V)		:- 	append([], F, V).
+
+find_val(neg(X), V)		:- 	find_val(X, A),
+							append([], A, V).
+
+find_val(and(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							append([A], [B], V).
+
+find_val(or(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							append([A], [B], V).
+							
+find_val(impl(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							append([A], [B], V).
+
+find_val(xor(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							append([A], [B], V).
+
+find_val(equiv(X, Y), V):- 	find_val(X, A),
+							find_val(Y, B),
+							append([A], [B], V).
+
+sublist(L, S) 			:-	length(L, N),
+							between(1, N, M),
+							length(S, M),
+							append([_,S,_], L).
+
+/*
+* taut_tt/1 sat_tt/1 unsat_tt/1
+*/
+
+taut_tt(F).
+
+sat_tt(F)	:-	find_val_tt(F, V).
+
+unsat(F)	:-	\+sat_tt(F).
