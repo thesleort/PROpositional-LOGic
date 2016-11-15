@@ -68,7 +68,7 @@ wff(equiv(X, Y)):-	wff(X),
 * satisfies([1],neg(1)).
 * satisfies([1],neg(2)).
 */
-satisfies(V, p(F)) 			:- list_members(V, F).
+satisfies(V, p(F)) 			:- list_contains(V, F).
 
 satisfies(V, neg(X))		:- neg(satisfies(V, X)).
 
@@ -83,9 +83,9 @@ satisfies(V, xor(X, Y))		:- xor(satisfies(V, X), satisfies(V, Y)).
 satisfies(V, equiv(X, Y))	:- equiv(satisfies(V, X), satisfies(V, Y)).
 
 
-list_members([X|_], X).
+list_contains([X|_], X).
 
-list_members([_|T], X) 	:- list_members(T, X).
+list_contains([_|T], X) 	:- list_contains(T, X).
 
 /*
 * find_val_tt/2
@@ -127,12 +127,16 @@ sublist(L, S) 			:-	length(L, N),
 							length(S, M),
 							append([_,S,_], L).
 
-permutation([], []).
-permutation([E|Tail], [E|NTail])		:-	permutation(Tail, NTail).
-permutation([_|Tail], NTail)			:-	permutation(Tail, NTail).
 
-permutations(L, S)		:-	split(L, _, A),
-    						%SubList = [_|_],     /* disallow empty list */
+permutations([], []).
+permutations([X|Y], [X|Z])		:-	permutations(Y, Z).
+permutations([_|Y], Z)			:-	permutations(Y, Z).
+
+zip([], [], []).
+zip([X|Xnext], [Y|Ynext], [X,Y|Znext]) :- zip(Xnext,Ynext,Znext).
+/*
+permutation(L, S)		:-	split(L, _, A),
+    						%SubList = [_|_],      disallow empty list 
     						permute(A, S).
 
 split([ ], [ ], [ ]).
@@ -149,6 +153,8 @@ permute(L, [X|R]) 		:-	omit(X, L, M),
 omit(H, [H|T], T).
 
 omit(X, [H|L], [H|R]) 	:-	omit(X, L, R).
+*/
+
 /*
 * taut_tt/1 sat_tt/1 unsat_tt/1
 taut_tt(or(or(p(2),neg(p(3))),p(1))).
@@ -159,12 +165,9 @@ impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))
 
 taut_tt(F)	:-	unsat_tt(neg(F)).
 
-sat_tt(F)	:-	find_val_tt(F, V),!.
+sat_tt(F)	:-	find_val_tt(F, V).
 
-unsat_tt(F)	:-	\+sat_tt(F).
-
-list_empty([]):-	true.
-list_empty([_|_]):-	false.
+unsat_tt(F)	:-	neg(sat_tt(F)).
 
 /*
 * tableu/2
@@ -174,29 +177,33 @@ tableu(F, V)	:- get_leaf(F, V, true).
 							
 tableau(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))),V).							
 							*/
-tableau(F, V)				:-	get_leaf(F, V),
-								write(V).
+tableau(F, V)				:-	get_leaf(F, V).
 
-get_leaf(p(F), V)			:-	append([],[p(F)], V).
 
-get_leaf(neg(p(F)), V)		:-	append([],[neg(p(F))],V).
 
-get_leaf(neg(neg(p(F))),V)	:-	append([],[p(F)],V).
+get_leaf(p(F), V)			:-	append([],p(F), V).
 
-%AND
+get_leaf(neg(p(F)), V)		:-	append([],neg(p(F)),V).
+
+get_leaf(neg(neg(p(F))),V)	:-	append([],p(F),V).
+
+%AND get_leaf(or(p(1),and(p(1),p(2))),V).
+% get_leaf(and(p(1),p(2)),V).
 get_leaf(and(X, Y), V)		:-	get_leaf(X, A),
-								get_leaf(Y, B).
-								%append([A], [B], V).
-
+								get_leaf(Y, B),
+								append([A],[B],V).
+/*
 get_leaf(neg(and(X, Y)), V)	:-	get_leaf(neg(X), A),
 								get_leaf(neg(Y), B).
-								%append([], [A, B], V).
-
+								append([A], B, V).
+*/
 %OR
-get_leaf(or(X, Y), V)		:-	get_leaf(X, A),
-								get_leaf(Y, B).
-								%append([A], [B], V).
+get_leaf(or(X,_), V)		:-	get_leaf(X, V).
 
+get_leaf(or(_,X), V)		:-	get_leaf(X, V).
+								
+								%append([A], [B], V).
+/*
 get_leaf(neg(or(X, Y)), V)	:-	get_leaf(neg(X), A),
 								get_leaf(neg(Y), B).
 								%append([A], [B], V).
