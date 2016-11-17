@@ -1,27 +1,10 @@
 /*
-No: 
-so no ;, -> and ^ = you'll fail
-Disjunction
-implication
-existential quantifier
-If you use these things he'll chop your head off.
-*
-*	Troels Blicher Petersen(trpet15)
-*	12:49 Monday the 7th of November 2016
-*	Prolog project.
-*
-*/
-%problem 1:
-%Define a predicate wff/1 that checks whether its argument is a propositional formula (wff standsfor well-formed formula).
-% well formed impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))).
-/*
-* Check for impl(*,*)
-* check for p(int) basecase
-* check for neg(*,*)
-* check for and(*,*)
-* check for equiv(*,*)
-* check for xor(*,*)
-*/
+ *
+ *	Troels Blicher Petersen (trpet15)
+ *	15th of November 2016
+ *	Prolog project.
+ *
+ */
 
 p(K).
 
@@ -64,9 +47,6 @@ wff(equiv(X, Y)):-	wff(X),
 
 /*
 * satisfies/2
-*
-* satisfies([1],neg(1)).
-* satisfies([1],neg(2)).
 */
 satisfies(V, p(F)) 			:- list_contains(V, F).
 
@@ -82,86 +62,48 @@ satisfies(V, xor(X, Y))		:- xor(satisfies(V, X), satisfies(V, Y)).
 
 satisfies(V, equiv(X, Y))	:- equiv(satisfies(V, X), satisfies(V, Y)).
 
-
 list_contains([X|_], X).
 
 list_contains([_|T], X) 	:- list_contains(T, X).
 
+
 /*
 * find_val_tt/2
 */
-
 find_val_tt(F, V)		:-	find_val(F, A),
 							flatten(A, B),
 							sort(B, C),
 							permutations(C, V),
 							satisfies(V, F).
 
-find_val(p(F), V)		:- 	append([], F, V).
+find_val(p(F), V)		:- 	list_init(F, V).
 
 find_val(neg(X), V)		:- 	find_val(X, A),
-							append([], A, V).
+							zip([], [A], V).
 
 find_val(and(X, Y), V)	:- 	find_val(X, A),
 							find_val(Y, B),
-							append([A], [B], V).
+							zip([A], [B], V).
 
 find_val(or(X, Y), V)	:- 	find_val(X, A),
 							find_val(Y, B),
-							append([A], [B], V).
+							zip([A], [B], V).
 							
 find_val(impl(X, Y), V)	:- 	find_val(X, A),
 							find_val(Y, B),
-							append([A], [B], V).
+							zip([A], [B], V).
 
 find_val(xor(X, Y), V)	:- 	find_val(X, A),
 							find_val(Y, B),
-							append([A], [B], V).
+							zip([A], [B], V).
 
 find_val(equiv(X, Y), V):- 	find_val(X, A),
 							find_val(Y, B),
-							append([A], [B], V).
+							zip([A], [B], V).
 
-sublist(L, S) 			:-	length(L, N),
-							between(1, N, M),
-							length(S, M),
-							append([_,S,_], L).
-
-
-permutations([], []).
-permutations([X|Y], [X|Z])		:-	permutations(Y, Z).
-permutations([_|Y], Z)			:-	permutations(Y, Z).
-
-zip([], [], []).
-zip([X|Xnext], [Y|Ynext], [X,Y|Znext]) :- zip(Xnext,Ynext,Znext).
-/*
-permutation(L, S)		:-	split(L, _, A),
-    						%SubList = [_|_],      disallow empty list 
-    						permute(A, S).
-
-split([ ], [ ], [ ]).
-
-split([H|T], [H|L], R)	:-	split(T, L, R).
-
-split([H|T], L, [H|R])	:-	split(T, L, R).
-
-permute([ ], [ ]) 		:-	!.
-
-permute(L, [X|R]) 		:-	omit(X, L, M),
-    						permute(M, R).
-
-omit(H, [H|T], T).
-
-omit(X, [H|L], [H|R]) 	:-	omit(X, L, R).
-*/
-
-/*
-* taut_tt/1 sat_tt/1 unsat_tt/1
-taut_tt(or(or(p(2),neg(p(3))),p(1))).
-taut_tt(or(p(1),neg(p(1)))).
-
-impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))
-*/
+/* 
+ *taut_tt/1 sat_tt/1 unsat_tt/1
+ */
 
 taut_tt(F)	:-	unsat_tt(neg(F)).
 
@@ -170,71 +112,97 @@ sat_tt(F)	:-	find_val_tt(F, V).
 unsat_tt(F)	:-	neg(sat_tt(F)).
 
 /*
-* tableu/2
-tableu(and(p(1),p(1)),V).
+ * tableu/2
+ */
 
-tableu(F, V)	:- get_leaf(F, V, true).
-							
-tableau(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))),V).							
-							*/
-tableau(F, V)				:-	get_leaf(F, V).
+tableau(p(F), V)			:-	list_init(p(F), V).
 
+tableau(neg(p(F)), V)		:-	list_init(neg(p(F)), V).
 
+tableau(neg(neg(p(F))), V)	:-	list_init(p(F), V).
 
-get_leaf(p(F), V)			:-	append([],p(F), V).
+%AND
+tableau(and(X, Y), V)		:-	tableau(X, A),
+								tableau(Y, B),
+								zip([A], [B], V).
+						
+tableau(neg(and(X,_)), V)	:-	tableau(neg(X), V).
 
-get_leaf(neg(p(F)), V)		:-	append([],neg(p(F)),V).
+tableau(neg(and(_,X)), V)	:-	tableau(neg(X), V).
 
-get_leaf(neg(neg(p(F))),V)	:-	append([],p(F),V).
-
-%AND get_leaf(or(p(1),and(p(1),p(2))),V).
-% get_leaf(and(p(1),p(2)),V).
-get_leaf(and(X, Y), V)		:-	get_leaf(X, A),
-								get_leaf(Y, B),
-								append([A],[B],V).
-/*
-get_leaf(neg(and(X, Y)), V)	:-	get_leaf(neg(X), A),
-								get_leaf(neg(Y), B).
-								append([A], B, V).
-*/
 %OR
-get_leaf(or(X,_), V)		:-	get_leaf(X, V).
+tableau(or(X,_), V)			:-	tableau(X, V).
 
-get_leaf(or(_,X), V)		:-	get_leaf(X, V).
-								
-								%append([A], [B], V).
-/*
-get_leaf(neg(or(X, Y)), V)	:-	get_leaf(neg(X), A),
-								get_leaf(neg(Y), B).
-								%append([A], [B], V).
+tableau(or(_,X), V)			:-	tableau(X, V).
 
-%IMPLICATION tableau(or(p(1),p(2)),V).
-get_leaf(impl(X, Y), V)		:-	get_leaf(neg(X), A),
-								get_leaf(Y, B).
-								%append([A], [B], V).
+tableau(neg(or(X, Y)), V)	:-	tableau(neg(X), A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
 
-get_leaf(neg(impl(X, Y)), V):-	get_leaf(X, A),
-								get_leaf(neg(Y), B).
-								%append([A], [B], V).
+%IMPLICATION
+tableau(impl(X,_), V)		:-	tableau(neg(X), V).
 
-%EXCLUSIVE OR
-get_leaf(xor(X, Y), V)		:-	get_leaf(X, A),
-								get_leaf(neg(Y), B),
-								get_leaf(neg(X), C),
-								get_leaf(Y, D).
-								%append([A, B], [C, D], V).
+tableau(impl(_,X), V)		:-	tableau(X, V).
 
-get_leaf(neg(xor(X, Y)), V)	:-	get_leaf(X, A),
-								get_leaf(Y, B),
-								get_leaf(neg(X), C),
-								get_leaf(neg(Y), D).
-								%append([A, B], [C, D], V).
+tableau(neg(impl(X, Y)), V)	:-	tableau(X, A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
 
 %EQUIVALENT
-get_leaf(equiv(X, Y), V)		:-	get_leaf(and(X, Y), A),
-									get_leaf(neg(and(X, Y), B).
-									%append([A], [B], V).
+tableau(equiv(X, Y), V)		:-	tableau(X, A),
+								tableau(Y, B),
+								zip([A], [B], V).
 
-get_leaf(neg(equiv(X, Y)), V)	:-	get_leaf(neg(impl(X, Y)), A),
-									get_leaf(impl(X, Y), B).
-									%append([A], [B], V).
+tableau(equiv(X, Y), V)		:-	tableau(neg(X), A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
+							
+tableau(neg(equiv(X, Y)), V):-	tableau(X, A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
+
+tableau(neg(equiv(X, Y)), V):-	tableau(neg(X), A),
+								tableau(Y, B),
+								zip([A], [B], V).
+
+%EXCLUSIVE OR
+tableau(xor(X, Y), V)		:-	tableau(neg(equiv(X, Y)), V).
+
+tableau(neg(xor(X, Y)), V)	:-	tableau(equiv(X, Y), V).
+
+/*
+ * find_val_tab/2
+ */
+find_val_tab(F, V)	:-	tableau(F, X),
+						getnumbers(X, V),
+						satisfies(V,F).
+
+/*
+ * taut_tab/1 sat_tab/1 unsat_tab/1
+ */
+taut_tab(F)	:-	unsat_tab(neg(F)).
+
+sat_tab(F)	:-	find_val_tab(F, V).
+
+unsat_tab(F):-	neg(sat_tab(F)).
+
+/*
+ * Tool predicates
+ */
+permutations([], []).
+permutations([X|Y], [X|Z])		:-	permutations(Y, Z).
+permutations([_|Y], Z)			:-	permutations(Y, Z).
+
+list_init(X, X).
+
+getnumbers(p(K), [K]).
+getnumbers(neg(p(K)), []).
+getnumbers([p(K),p(L)],[K,L]).
+getnumbers([neg(p(K)),p(L) ],[L]).
+getnumbers([p(K),neg(p(L)) ],[K]).
+
+zip([], [], []).
+
+zip([], [Y|Ynext], [Y|Znext])			:-	zip([], Ynext, Znext).
+
+zip([X|Xnext], [Y|Ynext], [X,Y|Znext])	:-	zip(Xnext,Ynext,Znext).

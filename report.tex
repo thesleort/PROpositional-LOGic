@@ -74,10 +74,299 @@ Checking whether the formula F is true with the valuation V, is very similar to 
 However, \textsf{satisfies/2} is not the only predicate used in to determine the satisfiability of a formula. To check whether X exists in V the predicate \textsf{list\_contains/2} is needed. \textsf{list\_contains/2} starts out by checking whether X is the first element of the list. This is done with \textsf{list\_contains([X|\_], X).} If X is not the first item, it checks the next element of the list. By setting the second element of the list to the first element of a new list, it is possible to recursively check whether X is in the valuation list. Again, if X is in the list, \textsf{list\_contains/2} returns true and otherwise false.
 \subsection{find\_val\_tt/2}
 \textsf{find\_val\_tt/2} resuses a lot of the work done by \textsf{satisfies/2}, since  \textsf{satisfies/2} checks whether a valuation, V, for the formula, F, is true or false. What makes \textsf{find\_val\_tt/2} different, is that it needs to find all the values of the formula and then put these in a list. This list and all of its permutations are used to in \textsf{satisfies/2}. Since V in \textsf{find\_val\_tt/2} has not been defined at execution, it will return a list in all the cases where \textsf{find\_val\_tt/2} is true.\\
-The predicate \textsf{find\_val\_tt/2} works by calling a sort of derived predicate called \textsf{find\_val/2}. \textsf{find\_val/2} is in many regards very similar to \textsf{satisfies/2}. The only difference is the base case and when backtracking. The base case takes the value of \textsf{p(X)} and adds it to a list using one of Prolog's built in functions \textsf{append/3}. When it starts backtracking, it adds all the base cases to a list. This list is then returned from \textsf{find\_val/2}. However, the returned list is made up of nested lists with nested lists and so on. This means that it isn't possible right away to use the list in \textsf{satisfies/2}. To circumvent this problem, Prolog has a built in predicate \textsf{flatten/2}, which flattens the list. However, there is still a minor problem. The now flattened list may contain duplicates. Duplicates in itself is not a problem, however, they might slow down the program significantly - more about that later. It turns out that Prolog's built-in sort predicate \textsf{sort/2} not only sorts the input list, it also removes any duplicates. Therefore \textsf{sort/2} is used.\\
+The predicate \textsf{find\_val\_tt/2} works by calling a sort of derived predicate called \textsf{find\_val/2}. \textsf{find\_val/2} is in many regards very similar to \textsf{satisfies/2}. The only difference is the base case and when backtracking. The base case takes the value of \textsf{p(X)} and adds it to a list using one the predicate \textsf{list\_init/2}. \textsf{list\_init/2} simply adds one element to a list. It cannot add to an already defined list. When it starts backtracking, it adds all the base cases to a list using the predicate \textsf{zip/3}.\\
+\textsf{zip/3} works by putting X and Y in front of the output list. It does so recursively by setting the tail of X and Y as the new heads afterwards. When done, it has added two lists together.\\
+This list is then returned from \textsf{find\_val/2}. However, the returned list is made up of nested lists with nested lists and so on. This means that it isn't possible right away to use the list in \textsf{satisfies/2}. To circumvent this problem, Prolog has a built in predicate \textsf{flatten/2}, which flattens the list. However, there is still a minor problem. The now flattened list may contain duplicates. Duplicates in itself is not a problem, however, they might slow down the program significantly - more about that later. It turns out that Prolog's built-in sort predicate \textsf{sort/2} not only sorts the input list, it also removes any duplicates. Therefore \textsf{sort/2} is used.\\
 Now to find all the valuations that makes the formula true, it is required to test all permutations of the now sorted list. It is important that it is permutations of the list and not just sublists of the list. The difference lies in the fact that [1,3] is not a sublist of [1,2,3], however, [1,3] is a permutation of [1,2,3]. To make such a permutation a new predicate \textsf{permutations/2} is required. First of all \textsf{permutations/2} has a base case \textsf{permutations([],[]).} This base case states that the permuted list of an empty list, is only the empty list. The next two clauses of \textsf{permutations/2} controls what to do with a non-empty list. In the first clause it is stated that if the first element of the first list is the same as the first element of the output list, then the output list must be a subset of the input list. However, this is only the case if we have the second clause. Otherwise it would only be a way to tell whether two lists are the same. The second clause deals with the permuted subsets of the input list. It states that the output list is a subset of the tail of the input list. When executing \textsf{permutations/2} it will therefore output all the permuted lists of the input list - this includes the empty list. It is important to note that \textsf{permutations/2} is not dependent on sorted lists. If the input list is unsorted, it will simply return all the permuted lists in a different order.\\
 Now back to the duplicates. When finding all permutations of a lists that holds duplicates, the amount of work is greatly increased. For an example the list [1,2,2] would output [1,2] two times, since the "2"'s are not regarded as the same when find permutations of a list. For the sake of removing unnessesary overhead, duplicates therefore has to be removed.\\
 Another thing to note in \textsf{find\_val\_tt/2} is the lack of any cuts. The reason for this is that the user can then get all the lists where the formula is satisfied.
 \subsection{taut\_tt/1, sat\_tt/1 \& unsat\_tt/1}
+Finding out if a formula is a tautology or unsatisfiable, can be done by checking if a formula is satisfiable. Checking if a formula is satisfiable is done using the predicate \textsf{sat\_tt/1}. \textsf{sat\_tt/1} makes use of \textsf{find\_val\_tt/2}, however, instead of returning the lists that satisfies the formula, true is returned if such lists exists. If a list does not have any satisfiable valuations, it returns false, which brings us to \textsf{unsat\_tt/1}. \textsf{unsat\_tt/1} does the same as \textsf{sat\_tt/1}, only difference is that it returns true, if no valuation satisfies the formula. This is done by negating the output from \textsf{sat\_tt/1}. Now the last and most interesting part of the three predicates is the \textsf{taut\_tt/1}, which checks whether a formula is a tautology. Now this is a clear example of when one really has to think, and that the solution is not only the simplest solution, it is also among the prettiest of them all\footnote{Of course this is my opinion. I must admit I felt that I really had a satisfying heureka-moment when I solved this, after having tried all kinds of tedious methods to solve this problem.}.\\
+If a formula is unsatisfiable, it means that it cannot be true in any way - no matter the input. The cool thing is that when the input of \textsf{unsat\_tt/1} is negated, instead of all the outputs being false, they now have to be true instead, for the predicate to be true. If all inputs gives true as output it must be a tautology.
+\section{Task 2}
+\subsection{tableau/2}
+All the cases for using a \textit{propositional tableaux} are defined in the project handout. Basically they consist of two different types of predicates. One type of predicate branches into two new predicates. An example of this could be $\phi \rightarrow \varphi$ where it branches into $\neg\phi$ and $\varphi$. The other type of predicate is where it combines the results in a list.\\\\
+Take for an example \textsf{tableau(or(X,\_)),V)} and \textsf{tableau(or(\_, X)),V)}. Here it branches, due to the fact that Prolog finds all the clauses where the inputs match the required parameters of the clause. When doing so, it actually creates a branch, and since there is two clauses where \textsf{tableau(or/2,V)} is positive, it divides into two branches.
+The other case is where the \textsf{or/2} is negative or \textsf{tableau(neg(X,Y),V)}. Here it combines the results when backtracking, which is what it is supposed to do.\\
+In both cases when it hits a leaf node, it adds the node to a list using \textsf{list\_init/2}.
+\subsection{find\_val\_tab/2}
+\textsf{find\_val\_tab/2} is similar to \textsf{find\_val\_tt/2} in some regards. It gets all the valuations from \textsf{tableau/2} and then uses these valuations in \textsf{getnumbers/2}. \textsf{getnumbers/2} is made up of five different clauses. They each return the value of \textsf{p(X)} if it is not negated. Each clause represents a case or input list. The output of \textsf{getnumbers/2} is then used to check if it satisfies. If the output list is satisfiable, it is returned.
+\subsection{taut\_tab/1, sat\_tab/1 \& unsat\_tab/1}
+\textsf{taut\_tab/1, sat\_tab/1 \& unsat\_tab/1} where all implemented in the same way as \textsf{taut\_tt/1, sat\_tt/1 \& unsat\_tt/1}. However, there seems to be some problems, which I weren't able to solve. For an example the project formula\\ impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))) is said to be a tautology when using \textsf{taut\_tab/1}. However, in every other sample I tested, the \textsf{taut\_tab/1} seemed to give correct results. Since \textsf{taut\_tab/1} is not always giving the correct result, most likely \textsf{unsat\_tab/1} also has some problems, since \textsf{taut\_tab/1} is based on that.
+\section{Testing and examples}
+All testing is as a minimum done on the example formula\\ "impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))" from the project.
 
+Notice: lists are represented using parentheses instead of square brackets.
+\subsection*{wff/1}
+\textsf{wff(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))))}\\
+Returns:\\
+\textsf{true}
+\subsection*{satisfies/2}
+\textsf{satisfies([],impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))))}\\
+Returns:\\
+\textsf{false}\\
+- since this formula cannot be true if no values are true.\\
+\textsf{satisfies([1,2,3],impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3))))))}\\
+Returns:\\
+\textsf{true}
+\subsection*{find\_val\_tt/2}
+\textsf{find\_val\_tt(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))),V)}\\
+Returns:\\
+\textsf{(1,2,3)\\
+		(1,3)\\
+		(1)\\
+		(2,3)\\
+		(2)}
+\subsection*{sat\_tt/1}
+\textsf{sat\_tt(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))))}\\
+Returns:\\
+\textsf{true}
+\subsection*{unsat\_tt/1}
+\textsf{unsat\_tt(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))))}\\
+Returns:\\
+\textsf{false}
+\textsf{unsat\_tt(and(p(1),neg(p(1)))}\\
+Returns:\\
+\textsf{true}
+\subsection*{taut\_tt/1}
+\textsf{unsat\_tt(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))))}\\
+Returns:\\
+\textsf{false}
+\\\\
+\textsf{unsat\_tt(or(p(1),neg(p(1)))}\\
+Returns:\\
+\textsf{true}
+\subsection*{tableau/2}
+\textsf{tableau(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))),V)}\\
+Returns:\\
+\textsf{V=(p(1), neg(p(2))\\
+		V=(neg(p(1),p(2))\\
+		V=(p(3),p(1))\\
+		V=(p(3),neg(p(3))}
+\subsection*{find\_val\_tab/2}
+\textsf{find\_val\_tab(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))),V)}\\
+Returns:\\
+\textsf{V=(1)\\
+		V=(2)\\
+		V=(3,1)}\\
+\subsection*{taut\_tt/1}
+\textsf{unsat\_tt(impl(equiv(p(1),p(2)),and(p(3),or(p(1),neg(p(3)))))))}\\
+Returns:\\
+\textsf{true}
+\\\\
+\textsf{unsat\_tt(or(p(1),neg(p(1)))}\\
+Returns:\\
+\textsf{true}
+\newpage
+\section{Code}
+\begin{lstlisting}
+/*
+ *
+ *	Troels Blicher Petersen (trpet15)
+ *	15th of November 2016
+ *	Prolog project.
+ *
+ */
+
+p(K).
+
+neg(X)      :-  \+X.
+
+and(X, Y)   :-  X, Y.
+
+or(X, Y) 	:- 	neg(and(neg(and(X, X)), neg(and(Y, Y)))).
+
+impl(X, Y)  :-  or(neg(X), Y).
+
+xor(X, Y)   :- 	or(X, Y), neg(and(X, Y)).
+
+equiv(X, Y) :-  or(and(X, Y), and(neg(X), neg(Y))).
+
+/*
+* Well-formed formula
+*/
+
+wff(X)			:-  X.
+
+wff(neg(X))		:-	wff(X).
+
+wff(and(X, Y))	:-	wff(X),
+					wff(Y).
+
+wff(or(X, Y))	:-	wff(X),
+					wff(Y).
+
+wff(impl(X, Y)) :- 	wff(X),
+					wff(Y).
+
+wff(xor(X, Y))	:-	wff(X),
+					wff(Y).
+
+wff(equiv(X, Y)):-	wff(X),
+					wff(Y).
+
+
+
+/*
+* satisfies/2
+*/
+satisfies(V, p(F)) 			:- list_contains(V, F).
+
+satisfies(V, neg(X))		:- neg(satisfies(V, X)).
+
+satisfies(V, and(X, Y)) 	:- and(satisfies(V, X), satisfies(V, Y)).
+
+satisfies(V, or(X, Y))		:- or(satisfies(V, X), satisfies(V, Y)).
+
+satisfies(V, impl(X, Y))	:- impl(satisfies(V, X), satisfies(V, Y)).
+
+satisfies(V, xor(X, Y))		:- xor(satisfies(V, X), satisfies(V, Y)).
+
+satisfies(V, equiv(X, Y))	:- equiv(satisfies(V, X), satisfies(V, Y)).
+
+list_contains([X|_], X).
+
+list_contains([_|T], X) 	:- list_contains(T, X).
+
+
+/*
+* find_val_tt/2
+*/
+find_val_tt(F, V)		:-	find_val(F, A),
+							flatten(A, B),
+							sort(B, C),
+							permutations(C, V),
+							satisfies(V, F).
+
+find_val(p(F), V)		:- 	list_init(F, V).
+
+find_val(neg(X), V)		:- 	find_val(X, A),
+							zip([], [A], V).
+
+find_val(and(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							zip([A], [B], V).
+
+find_val(or(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							zip([A], [B], V).
+							
+find_val(impl(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							zip([A], [B], V).
+
+find_val(xor(X, Y), V)	:- 	find_val(X, A),
+							find_val(Y, B),
+							zip([A], [B], V).
+
+find_val(equiv(X, Y), V):- 	find_val(X, A),
+							find_val(Y, B),
+							zip([A], [B], V).
+
+/* 
+ *taut_tt/1 sat_tt/1 unsat_tt/1
+ */
+
+taut_tt(F)	:-	unsat_tt(neg(F)).
+
+sat_tt(F)	:-	find_val_tt(F, V).
+
+unsat_tt(F)	:-	neg(sat_tt(F)).
+
+/*
+ * tableu/2
+ */
+
+tableau(p(F), V)			:-	list_init(p(F), V).
+
+tableau(neg(p(F)), V)		:-	list_init(neg(p(F)), V).
+
+tableau(neg(neg(p(F))), V)	:-	list_init(p(F), V).
+
+%AND
+tableau(and(X, Y), V)		:-	tableau(X, A),
+								tableau(Y, B),
+								zip([A], [B], V).
+						
+tableau(neg(and(X,_)), V)	:-	tableau(neg(X), V).
+
+tableau(neg(and(_,X)), V)	:-	tableau(neg(X), V).
+
+%OR
+tableau(or(X,_), V)			:-	tableau(X, V).
+
+tableau(or(_,X), V)			:-	tableau(X, V).
+
+tableau(neg(or(X, Y)), V)	:-	tableau(neg(X), A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
+
+%IMPLICATION
+tableau(impl(X,_), V)		:-	tableau(neg(X), V).
+
+tableau(impl(_,X), V)		:-	tableau(X, V).
+
+tableau(neg(impl(X, Y)), V)	:-	tableau(X, A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
+
+%EQUIVALENT
+tableau(equiv(X, Y), V)		:-	tableau(X, A),
+								tableau(Y, B),
+								zip([A], [B], V).
+
+tableau(equiv(X, Y), V)		:-	tableau(neg(X), A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
+							
+tableau(neg(equiv(X, Y)), V):-	tableau(X, A),
+								tableau(neg(Y), B),
+								zip([A], [B], V).
+
+tableau(neg(equiv(X, Y)), V):-	tableau(neg(X), A),
+								tableau(Y, B),
+								zip([A], [B], V).
+
+%EXCLUSIVE OR
+tableau(xor(X, Y), V)		:-	tableau(neg(equiv(X, Y)), V).
+
+tableau(neg(xor(X, Y)), V)	:-	tableau(equiv(X, Y), V).
+
+/*
+ * find_val_tab/2
+ */
+find_val_tab(F, V)	:-	tableau(F, X),
+						getnumbers(X, V),
+						satisfies(V,F).
+
+/*
+ * taut_tab/1 sat_tab/1 unsat_tab/1
+ */
+taut_tab(F)	:-	unsat_tab(neg(F)).
+
+sat_tab(F)	:-	find_val_tab(F, V).
+
+unsat_tab(F):-	neg(sat_tab(F)).
+
+/*
+ * Tool predicates
+ */
+permutations([], []).
+permutations([X|Y], [X|Z])		:-	permutations(Y, Z).
+permutations([_|Y], Z)			:-	permutations(Y, Z).
+
+list_init(X, X).
+
+getnumbers(p(K), [K]).
+getnumbers(neg(p(K)), []).
+getnumbers([p(K),p(L)],[K,L]).
+getnumbers([neg(p(K)),p(L) ],[L]).
+getnumbers([p(K),neg(p(L)) ],[K]).
+
+zip([], [], []).
+
+zip([], [Y|Ynext], [Y|Znext])			:-	zip([], Ynext, Znext).
+
+zip([X|Xnext], [Y|Ynext], [X,Y|Znext])	:-	zip(Xnext,Ynext,Znext).
+\end{lstlisting}
 \end{document}
