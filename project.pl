@@ -1,7 +1,7 @@
 /*
  *
  *	Troels Blicher Petersen (trpet15)
- *	15th of November 2016
+ *	22 February 2017
  *	Prolog project.
  *
  */
@@ -24,7 +24,7 @@ equiv(X, Y) :-  or(and(X, Y), and(neg(X), neg(Y))).
 * Well-formed formula
 */
 
-wff(X)			:-  X.
+wff(p(X))			:-  X.
 
 wff(neg(X))		:-	wff(X).
 
@@ -115,16 +115,16 @@ unsat_tt(F)	:-	neg(sat_tt(F)).
  * tableu/2
  */
 
-tableau(p(F), V)			:-	list_init(p(F), V).
+tableau(p(F), [p(F)]).
 
-tableau(neg(p(F)), V)		:-	list_init(neg(p(F)), V).
+tableau(neg(p(F)), [neg(p(F))]).
 
-tableau(neg(neg(p(F))), V)	:-	list_init(p(F), V).
+tableau(neg(neg(p(F))), V)	:-	tableau(N,V)
 
 %AND
 tableau(and(X, Y), V)		:-	tableau(X, A),
 								tableau(Y, B),
-								zip([A], [B], V).
+								zip(A, B, V).
 						
 tableau(neg(and(X,_)), V)	:-	tableau(neg(X), V).
 
@@ -137,7 +137,7 @@ tableau(or(_,X), V)			:-	tableau(X, V).
 
 tableau(neg(or(X, Y)), V)	:-	tableau(neg(X), A),
 								tableau(neg(Y), B),
-								zip([A], [B], V).
+								zip(A, B, V).
 
 %IMPLICATION
 tableau(impl(X,_), V)		:-	tableau(neg(X), V).
@@ -146,29 +146,37 @@ tableau(impl(_,X), V)		:-	tableau(X, V).
 
 tableau(neg(impl(X, Y)), V)	:-	tableau(X, A),
 								tableau(neg(Y), B),
-								zip([A], [B], V).
+								zip(A, B, V).
 
 %EQUIVALENT
 tableau(equiv(X, Y), V)		:-	tableau(X, A),
 								tableau(Y, B),
-								zip([A], [B], V).
+								zip(A, B, V).
 
 tableau(equiv(X, Y), V)		:-	tableau(neg(X), A),
 								tableau(neg(Y), B),
-								zip([A], [B], V).
+								zip(A, B, V).
 							
 tableau(neg(equiv(X, Y)), V):-	tableau(X, A),
 								tableau(neg(Y), B),
-								zip([A], [B], V).
+								zip(A, B, V).
 
 tableau(neg(equiv(X, Y)), V):-	tableau(neg(X), A),
 								tableau(Y, B),
-								zip([A], [B], V).
+								zip(A, B, V).
 
 %EXCLUSIVE OR
-tableau(xor(X, Y), V)		:-	tableau(neg(equiv(X, Y)), V).
+tableau(xor(X, Y), V)		:-	tableau(X, A),
+								tableau(neg(Y), B),
+								zip(A, B, V).
 
-tableau(neg(xor(X, Y)), V)	:-	tableau(equiv(X, Y), V).
+tableau(xor(X, Y), V)		:-	tableau(neg(X), A),
+								tableau(Y, B),
+								zip(A, B, V).
+
+tableau(neg(xor(X, Y)), V)	:-	tableau(neg(X), A),
+								tableau(Y, B),
+								zip(A, B, V).
 
 /*
  * find_val_tab/2
@@ -195,11 +203,9 @@ permutations([_|Y], Z)			:-	permutations(Y, Z).
 
 list_init(X, X).
 
-getnumbers(p(K), [K]).
-getnumbers(neg(p(K)), []).
-getnumbers([p(K),p(L)],[K,L]).
-getnumbers([neg(p(K)),p(L) ],[L]).
-getnumbers([p(K),neg(p(L)) ],[K]).
+getnumbers([], []).
+getnumbers([p(K)|V], [K|Vtail]) :- getnumbers(K, Vtail).
+getnumbers([_|V],Vtail) 		:- getnumbers(V, Vtail).
 
 zip([], [], []).
 
